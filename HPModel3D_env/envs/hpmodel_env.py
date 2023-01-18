@@ -413,7 +413,7 @@ class HPModel3D(gym.Env):
 
             z,y,x = self.state['pos_array'] + MOVS[a,:]
 
-            val = z>=0 & z<n & y>=0 & y<l & x>=0 & x<l
+            val = (z>=0) & (z<n) & (y>=0) & (y<l) & (x>=0) & (x<l)
 
             if not val:
 
