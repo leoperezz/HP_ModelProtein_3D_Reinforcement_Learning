@@ -227,7 +227,7 @@ class HPModel3D(gym.Env):
         info = self.state
 
 
-        valid = (z>=0) & (z<n) & (y>=0) & (y<l) & (x>=0) & x<l
+        valid = (z>=0) & (z<n) & (y>=0) & (y<l) & (x>=0) & (x<l)
 
         reward = -2 #Reward of invalid pos
 
