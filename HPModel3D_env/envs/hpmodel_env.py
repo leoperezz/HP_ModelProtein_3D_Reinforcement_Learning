@@ -13,28 +13,27 @@ POLY_TO_INT = {
     'H':1,'P':-1
 }
 
-ACTION_TO_STR = {
-    0:'X0',
-    1:'X1',
-    2:'Y0',
-    3:'Y1',
-    4:'Z0',
-    5:'Z1',
-    6:'NULL'
-}
-
 #(Z,Y,X)
 MOVS = np.array([
-    [0, 0,-1], #X0 
-    [0, 0, 1], #X1 
-    [0,-1, 0], #Y0 
-    [0, 1, 0], #Y1 
-    [-1,0, 0], #Z0 
-    [ 1,0, 0],  #Z1
-    [0 ,0, 0]  #null 
+    [ 1, 0, 0], #+Z 
+    [-1, 0, 0], #-Z 
+    [0, 1, 0], #+Y 
+    [0,-1, 0], #-Y 
+    [0, 0 ,1], #+X
+    [0,0, -1 ]#-X
 ])
 
-N_ACTIONS = 7
+
+ACTION_TO_STR = {
+    0:'+Z',
+    1:'+Y',
+    2:'-Y',
+    3:'+X',
+    4:'-X'
+}
+
+
+N_ACTIONS = 6
 
 
 class Node:
@@ -162,7 +161,43 @@ class HPModel3D(gym.Env):
 
         self.reset() #initialize all values
 
+    def reset(self):
 
+        #contains the relations between H polymers e.g (1.2) represent 
+        #the relation between H1 and H2 polymer. Further, if the set contains
+        #(x,y) it will contain (y,x) too.       
+        self.buffer_relations = set()
+
+        self.buffer_nodes = list()
+
+        self.grid = np.zeros(self.shape_grid) #initialize the grid
+
+        self.grid[self.midpoint] = POLY_TO_INT[self.seq[0]]#start in the midpoint
+
+        is_H = True if self.seq[0] == 'H' else False
+
+        self.ST = {
+              '+Z': 0,
+              '-Z': 1,
+              '+Y': 2,
+              '-Y': 3,
+              '+X': 4,
+              '-X': 5
+        } #SYSTEM REFERENCE INITIAL
+
+        self.state = {
+            'id':0,
+            'pos_tuple': self.midpoint,
+            'pos_array': np.array(self.midpoint),
+            'is_H': is_H,
+            'actions': [N_ACTIONS-1]*len(self.seq)
+        }
+
+        node = Node(0,self.seq[self.state['id']],self.state['pos_array'])
+
+        self.buffer_nodes.append(node)
+
+        return self._preprocess_state(self.state)
 
     def step(self, action : int ):
 
@@ -201,9 +236,14 @@ class HPModel3D(gym.Env):
 
         n,l,l = self.shape_grid
 
-        new_pos = self.state['pos_array'] + MOVS[action,:]
+        cord = ACTION_TO_STR[action]
+
+        mov = self.ST[cord]
+
+        new_pos = self.state['pos_array'] + MOVS[mov,:]
 
         z,y,x =  new_pos
+
 
         #1)Verify if the action is possible or not:
 
@@ -216,8 +256,7 @@ class HPModel3D(gym.Env):
         info = self.state
 
 
-        if not exist_solution:
-
+        if not exist_solution: 
             return self._preprocess_state(self.state),reward,done,info
 
 
@@ -225,23 +264,19 @@ class HPModel3D(gym.Env):
         
         done = 0
         info = self.state
-
-
         valid = (z>=0) & (z<n) & (y>=0) & (y<l) & (x>=0) & (x<l)
 
-        reward = -2 #Reward of invalid pos
+        reward = 0 #Reward of invalid pos
 
         if not valid:
-
             return self._preprocess_state(self.state),reward,done,info
 
 
         #1.3) Verify if some polymer is in the new_pos
 
-        reward = -2 #Reward of colission
+        reward = 0 #Reward of colission
 
-        if self.grid[z,y,x]!=0:
-
+        if self.grid[z,y,x]!=0:    
             return self._preprocess_state(self.state),reward,done,info
     
 
@@ -249,6 +284,8 @@ class HPModel3D(gym.Env):
 
         #verify if is H or not
         is_H = True if self.seq[self.state['id']+1] == 'H' else False 
+
+        self.change_ST(action)
 
         #Update the state of the enviroment
 
@@ -287,36 +324,6 @@ class HPModel3D(gym.Env):
 
         return  self._preprocess_state(self.state),reward,done,info
 
-
-
-    def reset(self):
-
-        #contains the relations between H polymers e.g (1.2) represent 
-        #the relation between H1 and H2 polymer. Further, if the set contains
-        #(x,y) it will contain (y,x) too.       
-        self.buffer_relations = set()
-
-        self.buffer_nodes = list()
-
-        self.grid = np.zeros(self.shape_grid) #initialize the grid
-
-        self.grid[self.midpoint] = POLY_TO_INT[self.seq[0]]#start in the midpoint
-
-        is_H = True if self.seq[0] == 'H' else False 
-
-        self.state = {
-            'id':0,
-            'pos_tuple': self.midpoint,
-            'pos_array': np.array(self.midpoint),
-            'is_H': is_H,
-            'actions': [N_ACTIONS-1]*len(self.seq)
-        }
-
-        node = Node(0,self.seq[self.state['id']],self.state['pos_array'])
-
-        self.buffer_nodes.append(node)
-
-        return self._preprocess_state(self.state)
 
 
 
@@ -376,7 +383,7 @@ class HPModel3D(gym.Env):
         if save_img:
 
             dummy = plt.figure()
-            
+
             new_mananger = dummy.canvas.new_manager(fig)
 
             assert path_img is not None, "Image needs a name"
@@ -419,7 +426,7 @@ class HPModel3D(gym.Env):
 
                 no_valid_moves += 1
 
-            if self.grid[z,y,x]!=0:
+            elif self.grid[z,y,x]!=0:
                 
                 collisions += 1
 
@@ -430,6 +437,40 @@ class HPModel3D(gym.Env):
         else:
 
             return True        
+
+    def change_ST(self,action):
+
+        ST_tmp = self.ST.copy()
+
+        if ACTION_TO_STR[action]=='+Y':
+
+            ST_tmp['+Z'] = self.ST['+Y']
+            ST_tmp['+Y'] = self.ST['-Z']
+            ST_tmp['-Z'] = self.ST['-Y']
+            ST_tmp['-Y'] = self.ST['+Z']
+
+        if ACTION_TO_STR[action]=='-Y':
+
+            ST_tmp['+Z'] = self.ST['-Y']
+            ST_tmp['-Y'] = self.ST['-Z']
+            ST_tmp['-Z'] = self.ST['+Y']
+            ST_tmp['+Y'] = self.ST['+Z']            
+
+        if ACTION_TO_STR[action]=='+X':
+
+            ST_tmp['+Z'] = self.ST['+X']
+            ST_tmp['+X'] = self.ST['-Z']
+            ST_tmp['-Z'] = self.ST['-X']
+            ST_tmp['-X'] = self.ST['+Z']
+
+        if ACTION_TO_STR[action]=='-X':
+
+            ST_tmp['+Z'] = self.ST['-X']
+            ST_tmp['-X'] = self.ST['-Z']
+            ST_tmp['-Z'] = self.ST['+X']
+            ST_tmp['+X'] = self.ST['+Z']   
+
+        self.ST = ST_tmp             
 
 
     def _update_buffer_relations(self,node: Node):
@@ -447,6 +488,3 @@ class HPModel3D(gym.Env):
     def _calculate_reward(self):
 
         return len(self.buffer_relations)          
-
-
-       
