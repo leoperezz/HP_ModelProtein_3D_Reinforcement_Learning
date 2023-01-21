@@ -221,7 +221,8 @@ env_model = LSTM_HP(
     hidden_size=256,
     num_layers=2,
     fc_units=512,
-    num_actions=6
+    num_actions=5,
+    bidirectional = False
 )
 
  
