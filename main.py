@@ -17,6 +17,7 @@ warnings.filterwarnings("ignore",category=UserWarning)
 from HPModel3D_env.envs.hpmodel_env import HPModel3D
 import arguments
 import utils
+from sequences import sequences_dict
 
 print(
 """   
@@ -33,7 +34,6 @@ print(
 
 """)
 
-
 gc.collect()
 torch.cuda.empty_cache()
 
@@ -41,9 +41,10 @@ args=arguments.args
 
 steps_million = args.time_steps/1e+6
 
-env_path = f"saved_models/{args.sequence}_{steps_million}M.pth"
+best_model = f"saved_models/B{args.sequence}_{steps_million}M.pth"
+last_model = f"saved_models/L{args.sequence}_{steps_million}M.pth"
 
-env = HPModel3D(args.sequence)
+env = HPModel3D(sequences_dict[args.sequence])
 
 action_n = env.action_space.n
 
@@ -58,8 +59,6 @@ dqn = utils.DDQN(
     sync_steps= args.sync_steps
 )
 
-#dqn.Q.load_state_dict(torch.load(env_path,map_location=torch.device(device)))
-#dqn.Q_target.load_state_dict(torch.load(env_path,map_location=torch.device(device)))
 
 buffer = utils.PrioritizedReplayBuffer(
     size = args.buffer_length,
@@ -81,11 +80,11 @@ reward_max = -np.inf
 l = 5
 
 
-max_frames = 1000
+max_frames = len(sequences_dict[args.sequence])*2
 frame = 0
 for t in tqdm(range(1, args.time_steps + 1)):
 
-    eps = max(eps_min,eps_min + (eps_max-eps_min)*math.e**(-t*l/args.time_steps))
+    eps = eps_min + (eps_max-eps_min)*math.e**(-t*l/args.time_steps)
     a = dqn.take_action(o,eps)
     o_, r, done, info = env.step(a)
     o_ = dqn.preprocess_state(o_)
@@ -105,12 +104,12 @@ for t in tqdm(range(1, args.time_steps + 1)):
         writer.add_scalar("Reward",reward,global_step = game+1)
         game+=1
         if reward>=reward_max:
+        
             print("Saving model...")
-            torch.save(dqn.Q.state_dict(),env_path)
-            #ts_image = t/1e+6
-            #path_img = f"saved_images/20merA/{args.sequence}_{ts_image}.fig.pickle" #change this every time that u want
-            #env.render_final(show_img = False, save_img = True, path_img = path_img)
+            print(f"reward :{reward_max}")
+            torch.save(dqn.Q.state_dict(),best_model)
             reward_max = reward
+        torch.save(dqn.Q.state_dict(),last_model)    
         reward=0
         gc.collect()
         torch.cuda.empty_cache()      
