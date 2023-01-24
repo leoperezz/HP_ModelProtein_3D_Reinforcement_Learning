@@ -1,4 +1,4 @@
-from models import LSTM_HP
+from models import LSTM_HP,LSTM_HP_ATT
 import random
 import operator
 import numpy as np
@@ -216,23 +216,29 @@ class PrioritizedReplayBuffer(ReplayBuffer):
 
 
 
-env_model = LSTM_HP(
+env_model1= LSTM_HP(
     input_size=9,
     hidden_size=256,
     num_layers=2,
     fc_units=512,
-    num_actions=5,
-    bidirectional = False
+    num_actions=5
 )
 
  
+env_model2= LSTM_HP_ATT(
+    input_size=9,
+    hidden_size=256,
+    fc_units=512,
+    num_actions=5
+)
+
 
 class DDQN:
     def __init__(self,output_shape,device,sync_steps):
         self.output_shape = output_shape
         self.device = device
-        self.Q = env_model.to(device)
-        self.Q_target = env_model.to(device)
+        self.Q = env_model2.to(device)
+        self.Q_target = env_model2.to(device)
         self.opt = Adam(self.Q.parameters(),0.00025)
         self.sync_steps = sync_steps
         self.iter = 1
