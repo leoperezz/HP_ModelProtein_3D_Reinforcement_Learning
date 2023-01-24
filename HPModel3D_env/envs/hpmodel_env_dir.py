@@ -266,7 +266,7 @@ class HPModel3D(gym.Env):
         info = self.state
         valid = (z>=0) & (z<n) & (y>=0) & (y<l) & (x>=0) & (x<l)
 
-        reward = 0 #Reward of invalid pos
+        reward = -4 #Reward of invalid pos
 
         if not valid:
             return self._preprocess_state(self.state),reward,done,info
@@ -274,7 +274,7 @@ class HPModel3D(gym.Env):
 
         #1.3) Verify if some polymer is in the new_pos
 
-        reward = 0 #Reward of colission
+        reward = -4 #Reward of colission
 
         if self.grid[z,y,x]!=0:    
             return self._preprocess_state(self.state),reward,done,info
@@ -392,12 +392,11 @@ class HPModel3D(gym.Env):
 
         if show_img:
             plt.show()
-            print(f"Size of the sequence: {x_l.shape[0]}")
 
 
     def _preprocess_state(self,state:dict,npy=False):
 
-        one_hot_actions = F.one_hot(torch.tensor(state['actions']),num_classes=7)
+        one_hot_actions = F.one_hot(torch.tensor(state['actions']),num_classes=N_ACTIONS)
 
         last_state = torch.cat((self.seq_one_hot,one_hot_actions),1)
 
