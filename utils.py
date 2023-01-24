@@ -227,7 +227,7 @@ env_model1= LSTM_HP(
  
 env_model2= LSTM_HP_ATT(
     input_size=9,
-    hidden_size=256,
+    hidden_size=512,
     fc_units=512,
     num_actions=5
 )
