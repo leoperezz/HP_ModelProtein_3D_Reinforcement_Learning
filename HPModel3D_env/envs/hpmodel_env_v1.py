@@ -419,7 +419,7 @@ class HPModel3D(gym.Env):
 
             for n in self.buffer_nodes:
 
-                if node._calculate_adjacents(n)==1.0 and n.type=='H':
+                if (node._calculate_adjacents(n)==1.0) & (n.type=='H') & (abs(node.id-n.id)>1):
                     
                     n1,n2=node.id,n.id
 
