@@ -1,4 +1,4 @@
-from models import LSTM_HP,LSTM_HP_ATT
+from models import *
 import random
 import operator
 import numpy as np
@@ -216,29 +216,31 @@ class PrioritizedReplayBuffer(ReplayBuffer):
 
 
 
-env_model1= LSTM_HP(
-    input_size=9,
-    hidden_size=256,
-    num_layers=2,
-    fc_units=512,
-    num_actions=5
-)
-
- 
-env_model2= LSTM_HP_ATT(
-    input_size=9,
-    hidden_size=512,
-    fc_units=512,
-    num_actions=5
-)
-
-
 class DDQN:
-    def __init__(self,output_shape,device,sync_steps):
+    def __init__(self,output_shape,device,sync_steps,model=1):
         self.output_shape = output_shape
         self.device = device
-        self.Q = env_model2.to(device)
-        self.Q_target = env_model2.to(device)
+
+        if model == 1:
+            self.Q = env_model1.to(device)
+            self.Q_target = env_model1.to(device)
+
+        elif model == 2:
+            self.Q = env_model2.to(device)
+            self.Q_target = env_model2.to(device)
+
+        elif model == 3:
+            self.Q = env_model3.to(device)
+            self.Q_target = env_model3.to(device)
+
+        elif model == 4:
+            self.Q = env_model4.to(device)
+            self.Q_target = env_model4.to(device)
+
+        elif model == 5:
+            self.Q = env_model5.to(device)            
+            self.Q_target = env_model5.to(device)
+
         self.opt = Adam(self.Q.parameters(),0.00025)
         self.sync_steps = sync_steps
         self.iter = 1
@@ -270,7 +272,7 @@ class DDQN:
         loss.backward()
         self.opt.step()
         self.opt.zero_grad()
-        if self.iter%self.sync_steps:
+        if (self.iter%self.sync_steps):
             self.iter = 1
             self.sync()
         else: 
