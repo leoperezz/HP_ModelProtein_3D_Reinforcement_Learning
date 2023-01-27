@@ -241,6 +241,10 @@ class DDQN:
             self.Q = env_model5.to(device)            
             self.Q_target = env_model5.to(device)
 
+        elif model == 6:
+            self.Q = env_model6.to(device)            
+            self.Q_target = env_model6.to(device)                
+
         self.opt = Adam(self.Q.parameters(),0.00025)
         self.sync_steps = sync_steps
         self.iter = 1
@@ -294,3 +298,6 @@ class DDQN:
     def preprocess_state(self,state):
         shape = state.shape
         return torch.tensor(state).view(1,shape[0],shape[1]).to(self.device).type(torch.float)
+
+
+
